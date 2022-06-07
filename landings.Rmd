@@ -53,3 +53,22 @@ lobster_landings %>%
     color = "State"
   )
 ```
+
+```{r better-viz}
+lobster_landings <- lobster_landings %>%
+  select(year, state, lobster_lbs) %>%
+  group_by(state) %>%
+  mutate(previous_year = lag(lobster_lbs, order_by = year)) %>%
+  view()
+
+lobster_landings %>%
+  mutate(pChange = ((lobster_lbs - previous_year)/lobster_lbs * 100)) %>%
+  ggplot(aes(x = year, y = pChange, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in New England, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    color = "State"
+  )
+```
