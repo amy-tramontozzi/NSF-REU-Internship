@@ -1,0 +1,55 @@
+```{r load-data}
+library(tidyverse)
+landings <- read_csv("~/Desktop/landings.csv")
+view(landings)
+```
+
+```{r clean-df}
+landings <- landings %>%
+  subset(select = -c(...7:...34)) %>%
+  rename(year = YEAR) %>%
+  rename(port = "PORT NAME") %>%
+  rename(state = STATE) %>%
+  rename(sp_name = SPPNAME) %>%
+  rename(landed_lbs = "LANDED LBS") %>%
+  rename(live_lbs = "LIVE LBS")
+```
+```{r filter-year}
+landings <- landings %>%
+  filter(year >= 1995)
+```
+
+```{r numeric-lbs}
+landings$landed_lbs <- gsub(",", "", landings$landed_lbs)
+landings$landed_lbs <- as.integer(landings$landed_lbs)
+
+landings$live_lbs <- gsub(",", "", landings$live_lbs)
+landings$live_lbs <- as.integer(landings$live_lbs)
+
+str(landings)
+```
+```{r lobster-landings}
+lobster_landings <- landings %>%
+  filter(sp_name == "LOBSTER, AMERICAN") %>%
+  group_by(year, state) %>%
+  summarise(lobster_lbs = sum(landed_lbs))
+```
+
+
+```{r total-landings}
+total_landings <- landings %>%
+  group_by(year, state) %>%
+  summarise(total_lbs = sum(landed_lbs))
+```
+
+```{r first-viz}
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in New England, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    color = "State"
+  )
+```
