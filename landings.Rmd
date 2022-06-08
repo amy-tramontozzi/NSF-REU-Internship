@@ -38,8 +38,10 @@ lobster_landings <- landings %>%
 
 ```{r total-landings}
 total_landings <- landings %>%
-  group_by(year, state) %>%
-  summarise(total_lbs = sum(landed_lbs))
+  filter(port != "CONFIDENTIAL") %>%
+  group_by(port, year) %>%
+  summarise(total_lbs = sum(landed_lbs)) %>%
+  view()
 ```
 
 ```{r first-viz}
@@ -54,7 +56,7 @@ lobster_landings %>%
   )
 ```
 
-```{r better-viz}
+{r better-viz}
 lobster_landings <- lobster_landings %>%
   select(year, state, lobster_lbs) %>%
   group_by(state) %>%
@@ -62,7 +64,8 @@ lobster_landings <- lobster_landings %>%
   view()
 
 lobster_landings %>%
-  mutate(pChange = ((lobster_lbs - previous_year)/lobster_lbs * 100)) %>%
+  group_by(state) %>%
+  mutate(pChange = ((lobster_lbs - previous_year)/previous_year) * 100) %>%
   ggplot(aes(x = year, y = pChange, color = state)) +
   geom_line() +
   labs(
@@ -71,4 +74,36 @@ lobster_landings %>%
     y = "Landed Pounds",
     color = "State"
   )
+```{r confidential}
+conf <- landings %>%
+  select(year, port, landed_lbs, sp_name, state) %>%
+  filter(port != "CONFIDENTIAL", sp_name == "CONFIDENTIAL") %>%
+  group_by(port, year, state) %>%
+  summarise(conf_landings = sum(landed_lbs)) %>%
+  view()
 ```
+```{r comm-viz}
+conf_ratio <- merge(x = conf, y = total_landings, all = TRUE) %>%
+  group_by(port, year) %>%
+  mutate(conf_annual_ratio = conf_landings / total_lbs) %>%
+  arrange(desc(conf_annual_ratio)) %>%
+  filter(conf_annual_ratio >= 0.50) %>%
+  view()
+
+  
+conf_viz <- conf_ratio %>%
+  group_by(port) %>%
+  mutate(conf_count = n_distinct(year)) %>%
+  ggplot(aes(x = port, y = conf_count)) +
+  geom_point() +
+  labs(
+    title = "Total Years with >= 0.50 Confidential Landed Pounds in the Northeastern U.S.",
+    x = "Port",
+    y = "Count"
+  )
+
+conf_viz +facet_wrap(~state)
+```
+
+
+
