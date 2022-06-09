@@ -111,23 +111,26 @@ lobster_landings %>%
   )
 ```
 ----------------------------------------------------
+```{r port-state}
+landings$port_state <- paste(landings$port, landings$state, sep = " ")
+```  
 
 ```{r conf-species}
 conf_landings <- landings %>%
   filter(sp_name == "CONFIDENTIAL") %>%
-  group_by(year, port) %>%
+  group_by(year, port_state) %>%
   summarise(conf_lbs = sum(landed_lbs)) 
 ```  
 
-```{r total-landings}
+```{r total-port-landings}
 ###total landings by port and year
 total_port_landings <- landings %>%
-  group_by(year, port) %>%
+  group_by(year, port_state) %>%
   summarise(total_lbs = sum(landed_lbs))
 ```
 
 ```{r join-dfs}
-totals <- left_join(total_port_landings, conf_landings, by=c("year", "port")) 
+totals <- left_join(total_port_landings, conf_landings, by=c("year", "port_state")) 
 totals$conf_lbs <- ifelse(is.na(totals$conf_lbs), 0, totals$conf_lbs)
 ```
 
@@ -144,7 +147,7 @@ totals <- totals %>%
 
 ```{r conf-yrs}
 confyrs <- totals %>%
-  group_by(port) %>%
+  group_by(port_state) %>%
   summarise(totalyrs = sum(yrs),
             yrsabove50 = sum(above50))
 ```
