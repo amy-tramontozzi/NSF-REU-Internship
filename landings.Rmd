@@ -34,17 +34,18 @@ str(landings)
 ###lobster ONLY landings by year and state --> for visualization
 lobster_landings <- landings %>%
   filter(sp_name == "LOBSTER, AMERICAN") %>%
-  group_by(year, state) %>%
+  group_by(state, year) %>%
   summarise(lobster_lbs = sum(landed_lbs))
 ```
 
 
-```{r total-landings}
+```{r total-state-landings}
 ###total landings by port and year
 total_landings <- landings %>%
   filter(port != "CONFIDENTIAL") %>%
-  group_by(port, year) %>%
+  group_by(year, state) %>%
   summarise(total_lbs = sum(landed_lbs)) %>%
+  
   view()
 ```
 
@@ -53,58 +54,112 @@ lobster_landings %>%
   ggplot(aes(x = year, y = lobster_lbs, color = state)) +
   geom_line() +
   labs(
-    title = "Landed Pounds of American Lobster in New England, 1995-2021",
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
     x = "Year",
     y = "Landed Pounds",
     color = "State"
   )
 ```
+```{r lobster-viz-proportions}
+
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, fill = state)) +
+  geom_col(position="fill") +
+  labs(
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    fill = "State"
+  )
+```
+
+```{r lobster-viz-stacked}
+
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    fill = "State"
+  )
+```
+```{r lobster-viz-newengland}
+
+lobster_landings %>%
+  filter(state != "ME", state != "DE", state != "ME", state != "VA", state != "NC") %>%
+  ggplot(aes(x = year, y = lobster_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in New England + NH, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    color = "State"
+  )
+```
+```{r lobster-viz-maine}
+
+lobster_landings %>%
+  filter(state == "ME") %>%
+  ggplot(aes(x = year, y = lobster_lbs)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in Maine, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds"
+  )
+```
+----------------------------------------------------
 
 ```{r conf-species}
-conf <- landings %>%
-  select(year, port, landed_lbs, sp_name, state) %>%
-  filter(port != "CONFIDENTIAL", sp_name == "CONFIDENTIAL") %>%
-  group_by(port, year, state) %>%
-  summarise(conf_landings = sum(landed_lbs)) %>%
-  view()
+conf_landings <- landings %>%
+  filter(sp_name == "CONFIDENTIAL") %>%
+  group_by(year, port) %>%
+  summarise(conf_lbs = sum(landed_lbs)) 
+```  
+
+```{r total-landings}
+###total landings by port and year
+total_port_landings <- landings %>%
+  group_by(year, port) %>%
+  summarise(total_lbs = sum(landed_lbs))
 ```
 
-```{r conf-viz}
-###Create tibble with ports by year with majority confidential landings
-conf_ratio <- merge(x = conf, y = total_landings, all = TRUE) %>%
-  group_by(port, year) %>%
-  mutate(conf_annual_ratio = conf_landings / total_lbs) %>%
-  arrange(desc(conf_annual_ratio)) %>%
-  filter(conf_annual_ratio >= 0.50) %>%
-  view()
+```{r join-dfs}
+totals <- left_join(total_port_landings, conf_landings, by=c("year", "port")) 
+totals$conf_lbs <- ifelse(is.na(totals$conf_lbs), 0, totals$conf_lbs)
+```
 
-###Need to determine what the cutoff count of majority confidential occurrences is -- 6?  
-conf_viz <- conf_ratio %>%
+```{r perc-annual-conf}
+totals <- totals %>%
+  mutate(perc_annual_conf = round(conf_lbs / total_lbs, 2))
+```
+
+```{r annual-above-50}
+totals <- totals %>%
+  mutate(yrs = 1,
+         above50 = ifelse(perc_annual_conf >= 0.5, 1, 0))
+```
+
+```{r conf-yrs}
+confyrs <- totals %>%
   group_by(port) %>%
-  mutate(conf_count = n_distinct(year)) %>%
-  ggplot(aes(x = port, y = conf_count)) +
-  geom_point() +
-  labs(
-    title = "Total Years with >= 0.50 Confidential Landed Pounds in the Northeastern U.S.",
-    x = "Port",
-    y = "Count"
-  )
-
-conf_viz +facet_wrap(~state)
+  summarise(totalyrs = sum(yrs),
+            yrsabove50 = sum(above50))
 ```
 
-```{r viable-ports}
-###Tibble with list of ports by year whose confidential landings are not majority
-###Use cutoff count to filter for viable ports
-
-merge(x = conf, y = total_landings, all = TRUE) %>%
-  group_by(port, year) %>%
-  mutate(conf_annual_ratio = conf_landings / total_lbs) %>%
-  arrange(desc(conf_annual_ratio)) %>%
-  filter(conf_annual_ratio < 0.50) %>%
-  view()
+```{r perc-above}
+perc_yrs <- confyrs %>%
+  mutate(perc_above = round(yrsabove50 / totalyrs, 2))
 ```
 
+```{r exclude-ports}
+exclude <- perc_yrs %>%
+  filter(perc_above >= 0.5)
+```
 
-
-
+```{r include-ports}
+include <- perc_yrs %>%
+  filter(perc_above < 0.5)
+```
