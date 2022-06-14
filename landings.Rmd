@@ -1,18 +1,18 @@
 ```{r load-data}
 library(tidyverse)
-landings <- read_csv("~/Desktop/landings.csv")
+landings <- read_csv("~/Desktop/valueadded.csv")
 view(landings)
 ```
 
 ```{r clean-df}
 landings <- landings %>%
-  subset(select = -c(...7:...34)) %>%
   rename(year = YEAR) %>%
   rename(port = "PORT NAME") %>%
   rename(state = STATE) %>%
   rename(sp_name = SPPNAME) %>%
   rename(landed_lbs = "LANDED LBS") %>%
-  rename(live_lbs = "LIVE LBS")
+  rename(live_lbs = "LIVE LBS") %>%
+   rename(value = VALUE)
 ```
 ```{r filter-year}
 landings <- landings %>%
@@ -28,6 +28,11 @@ landings$landed_lbs <- as.integer(landings$landed_lbs)
 landings$live_lbs <- gsub(",", "", landings$live_lbs)
 landings$live_lbs <- as.integer(landings$live_lbs)
 
+
+landings$value <- gsub(",", "", landings$value)
+landings$value <- as.integer(gsub("\\$", "", landings$value))
+
+landings$year <- as.integer(landings$year)
 str(landings)
 ```
 ```{r lobster-landings}
@@ -55,11 +60,14 @@ lobster_landings %>%
   geom_line() +
   labs(
     title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
-    x = "Year",
-    y = "Landed Pounds",
-    color = "State"
-  )
+    x = "",
+    y = "Millions of Pounds",
+    color = ""
+  ) +
+  scale_x_continuous(breaks = 1995:2021) +
+  scale_y_continuous(labels = c(0, 20, 40, 60))
 ```
+
 ```{r lobster-viz-proportions}
 
 lobster_landings %>%
@@ -67,9 +75,9 @@ lobster_landings %>%
   geom_col(position="fill") +
   labs(
     title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
-    x = "Year",
-    y = "Landed Pounds",
-    fill = "State"
+    x = "",
+    y="",
+    fill = ""
   )
 ```
 
@@ -80,9 +88,9 @@ lobster_landings %>%
   geom_bar(position="stack", stat="identity") +
   labs(
     title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
-    x = "Year",
-    y = "Landed Pounds",
-    fill = "State"
+    x = "",
+    y = "",
+    fill = ""
   )
 ```
 ```{r lobster-viz-newengland}
@@ -142,7 +150,7 @@ totals <- totals %>%
 ```{r annual-above-50}
 totals <- totals %>%
   mutate(yrs = 1,
-         above50 = ifelse(perc_annual_conf >= 0.5, 1, 0))
+         above50 = ifelse(perc_annual_conf >= 0.5, 1, 0)) 
 ```
 
 ```{r conf-yrs}
@@ -165,4 +173,10 @@ exclude <- perc_yrs %>%
 ```{r include-ports}
 include <- perc_yrs %>%
   filter(perc_above < 0.5)
+```
+__________________________________________
+```{r yrs-ports}
+include %>%
+  ggplot(aes(x = totalyrs)) +
+  geom_bar()
 ```
