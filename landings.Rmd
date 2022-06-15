@@ -1,6 +1,7 @@
 ```{r load-data}
+library(readxl)
 library(tidyverse)
-landings <- read_csv("~/Desktop/valueadded.csv")
+landings <- read_excel("~/Desktop/landings_excel.xlsx")
 view(landings)
 ```
 
@@ -119,6 +120,10 @@ lobster_landings %>%
   )
 ```
 ----------------------------------------------------
+
+
+
+
 ```{r port-state}
 landings$port_state <- paste(landings$port, landings$state, sep = " ")
 ```  
@@ -172,11 +177,17 @@ exclude <- perc_yrs %>%
 
 ```{r include-ports}
 include <- perc_yrs %>%
-  filter(perc_above < 0.5)
+  filter(perc_above < 0.5, totalyrs > 6)
 ```
-__________________________________________
-```{r yrs-ports}
+
+```{r total-yrs-viz}
 include %>%
   ggplot(aes(x = totalyrs)) +
   geom_bar()
+```
+
+```{r yrs-ports}
+landings %>%
+  filter(port_state %in% include$port_state) %>%
+  view()
 ```
