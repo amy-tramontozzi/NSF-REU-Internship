@@ -64,9 +64,9 @@ lobster_landings %>%
     x = "",
     y = "Millions of Pounds",
     color = ""
-  ) +
-  scale_x_continuous(breaks = 1995:2021) +
-  scale_y_continuous(labels = c(0, 20, 40, 60))
+  ) #+
+  #scale_x_continuous(breaks = 1995:2021) +
+ # scale_y_continuous(labels = c(0, 25, 50, 75))
 ```
 
 ```{r lobster-viz-proportions}
@@ -120,10 +120,6 @@ lobster_landings %>%
   )
 ```
 ----------------------------------------------------
-
-
-
-
 ```{r port-state}
 landings$port_state <- paste(landings$port, landings$state, sep = " ")
 ```  
@@ -188,6 +184,34 @@ include %>%
 
 ```{r yrs-ports}
 landings %>%
-  filter(port_state %in% include$port_state) %>%
-  view()
+  filter(port_state %in% include$port_state)
+```
+
+
+```{r theil}
+library(REAT)
+
+theil_2007 <- landings %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2007, value > 2000) 
+
+total_2007 = sum(theil_2007$value)
+
+theil_2007 <- theil_2007 %>%
+  group_by(port_state) %>%
+  mutate(perc_landings = value / total_2007)
+
+theil(theil_2007$value)
+
+
+theil_2019 <- landings %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2019) 
+
+total_2019 = sum(theil_2019$value)
+
+theil_2019 <- theil_2019 %>%
+  group_by(port_state) %>%
+  mutate(perc_landings = value / total_2019)
+
+theil(theil_2019$value, weighting = theil_2019$perc_landings)
+
 ```
