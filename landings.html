@@ -375,7 +375,7 @@ library(tidyverse)</code></pre>
 <pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>landings &lt;- read_excel(&quot;~/Desktop/landings_excel.xlsx&quot;)
+<pre class="r"><code>landings &lt;- read_excel(&quot;~/Desktop/GMRI/landings_excel.xlsx&quot;)
 view(landings)</code></pre>
 <pre class="r"><code>landings &lt;- landings %&gt;%
   rename(year = YEAR) %&gt;%
@@ -535,28 +535,167 @@ totals$conf_lbs &lt;- ifelse(is.na(totals$conf_lbs), 0, totals$conf_lbs)</code><
 <pre><code>## The following object is masked from &#39;package:readr&#39;:
 ## 
 ##     spec</code></pre>
-<pre class="r"><code>theil_2007 &lt;- landings %&gt;%
-  filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2007, value &gt; 2000) 
+<pre class="r"><code>##NEED to better understand how this function works, the value should be between 0 and 1 and doesnt work on dummy it seems
+dummy &lt;- data.frame(
+  year = 2000:2004,
+  port = letters[1:5],
+  value = c(1000, 1000, 50000, 1000, 10000))
+  #share = c(0.01587, 0.01587, 0.7936, 0.01587, 0.1587))
 
-total_2007 = sum(theil_2007$value)
 
-theil_2007 &lt;- theil_2007 %&gt;%
-  group_by(port_state) %&gt;%
-  mutate(perc_landings = value / total_2007)
+#dummy &lt;- mutate(dummy, share = 1 /(value / sum(dummy$value)))
 
-theil(theil_2007$value)</code></pre>
-<pre><code>## [1] 2.039654</code></pre>
+theil(dummy$value)</code></pre>
+<pre><code>## [1] 1.290775</code></pre>
+<pre class="r"><code>#theil(1/dummy$value, weighting = dummy$value)</code></pre>
+<pre class="r"><code>##POTENTIALLY REMAKE THIS FUNCTION
+
+function (x, weighting = NULL, na.rm = TRUE) 
+  {
+  
+    if (!is.null(weighting)) {
+      
+        if (length(x) != length(weighting)) {
+          
+            stop(&quot;Frequency and weighting differ in length&quot;, 
+                 
+                call. = FALSE)
+          
+        }
+    }
+  
+    if (na.rm == TRUE) {
+      
+        if (!is.null(weighting)) {
+
+            x_w &lt;- as.matrix(cbind(x, weighting))
+
+            x_w &lt;- x_w[complete.cases(x_w), ]
+
+            x &lt;- x_w[, 1]
+
+            weighting &lt;- x_w[, 2]
+
+        }
+
+        else {
+
+            x &lt;- x[!is.na(x)]
+
+        }
+
+    }
+
+    if (any((x) &lt;= 0)) {
+
+        return(NA)
+
+    }
+
+    x_mean &lt;- mean2(x, na.rm = na.rm)
+
+    if (!is.null(weighting)) {
+
+        w_share &lt;- weighting/sum(weighting)
+
+        ln_mean &lt;- w_share * log(x_mean/x)
+
+    }
+
+    else {
+      
+        ln_mean &lt;- log(x_mean/x)
+        
+    }
+  
+    TE &lt;- mean2(ln_mean, na.rm = na.rm)
+    return(TE)
+
+  }</code></pre>
+<pre><code>## function (x, weighting = NULL, na.rm = TRUE) 
+##   {
+##   
+##     if (!is.null(weighting)) {
+##       
+##         if (length(x) != length(weighting)) {
+##           
+##             stop(&quot;Frequency and weighting differ in length&quot;, 
+##                  
+##                 call. = FALSE)
+##           
+##         }
+##     }
+##   
+##     if (na.rm == TRUE) {
+##       
+##         if (!is.null(weighting)) {
+## 
+##             x_w &lt;- as.matrix(cbind(x, weighting))
+## 
+##             x_w &lt;- x_w[complete.cases(x_w), ]
+## 
+##             x &lt;- x_w[, 1]
+## 
+##             weighting &lt;- x_w[, 2]
+## 
+##         }
+## 
+##         else {
+## 
+##             x &lt;- x[!is.na(x)]
+## 
+##         }
+## 
+##     }
+## 
+##     if (any((x) &lt;= 0)) {
+## 
+##         return(NA)
+## 
+##     }
+## 
+##     x_mean &lt;- mean2(x, na.rm = na.rm)
+## 
+##     if (!is.null(weighting)) {
+## 
+##         w_share &lt;- weighting/sum(weighting)
+## 
+##         ln_mean &lt;- w_share * log(x_mean/x)
+## 
+##     }
+## 
+##     else {
+##       
+##         ln_mean &lt;- log(x_mean/x)
+##         
+##     }
+##   
+##     TE &lt;- mean2(ln_mean, na.rm = na.rm)
+##     return(TE)
+## 
+##   }</code></pre>
 <pre class="r"><code>theil_2019 &lt;- landings %&gt;%
   filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2019) 
 
-total_2019 = sum(theil_2019$value)
+#theil_2019 &lt;- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
 
-theil_2019 &lt;- theil_2019 %&gt;%
-  group_by(port_state) %&gt;%
-  mutate(perc_landings = value / total_2019)
+#abs 
+theil(1/theil_2019$value)</code></pre>
+<pre><code>## [1] 4.250735</code></pre>
+<pre class="r"><code>#relative
+theil(1/theil_2019$value, weighting = theil_2019$value)</code></pre>
+<pre><code>## [1] 0.07467309</code></pre>
+<pre class="r"><code>theil_2004 &lt;- landings %&gt;%
+  filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2004) 
 
-theil(theil_2019$value, weighting = theil_2019$perc_landings)</code></pre>
-<pre><code>## [1] -0.01089676</code></pre>
+#theil_2019 &lt;- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
+
+#abs 
+theil(1 / theil_2004$value)</code></pre>
+<pre><code>## [1] 4.932301</code></pre>
+<pre class="r"><code>#relative
+theil(1/theil_2004$value, weighting = theil_2004$value)</code></pre>
+<pre><code>## [1] 0.2282365</code></pre>
 </div>
 
 

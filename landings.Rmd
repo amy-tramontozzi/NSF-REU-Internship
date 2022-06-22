@@ -1,7 +1,7 @@
 ```{r load-data}
 library(readxl)
 library(tidyverse)
-landings <- read_excel("~/Desktop/landings_excel.xlsx")
+landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
 view(landings)
 ```
 
@@ -186,32 +186,113 @@ include %>%
 landings %>%
   filter(port_state %in% include$port_state)
 ```
-
-
-```{r theil}
+```{r dummy}
 library(REAT)
+##NEED to better understand how this function works, the value should be between 0 and 1 and doesnt work on dummy it seems
+dummy <- data.frame(
+  year = 2000:2004,
+  port = letters[1:5],
+  value = c(1000, 1000, 50000, 1000, 10000))
+  #share = c(0.01587, 0.01587, 0.7936, 0.01587, 0.1587))
 
-theil_2007 <- landings %>%
-  filter(sp_name == "COD, ATLANTIC", year == 2007, value > 2000) 
 
-total_2007 = sum(theil_2007$value)
+#dummy <- mutate(dummy, share = 1 /(value / sum(dummy$value)))
 
-theil_2007 <- theil_2007 %>%
-  group_by(port_state) %>%
-  mutate(perc_landings = value / total_2007)
+theil(dummy$value)
+#theil(1/dummy$value, weighting = dummy$value)
+```
 
-theil(theil_2007$value)
+```{r theil function}
+##POTENTIALLY REMAKE THIS FUNCTION
 
+function (x, weighting = NULL, na.rm = TRUE) 
+  {
+  
+    if (!is.null(weighting)) {
+      
+        if (length(x) != length(weighting)) {
+          
+            stop("Frequency and weighting differ in length", 
+                 
+                call. = FALSE)
+          
+        }
+    }
+  
+    if (na.rm == TRUE) {
+      
+        if (!is.null(weighting)) {
+
+            x_w <- as.matrix(cbind(x, weighting))
+
+            x_w <- x_w[complete.cases(x_w), ]
+
+            x <- x_w[, 1]
+
+            weighting <- x_w[, 2]
+
+        }
+
+        else {
+
+            x <- x[!is.na(x)]
+
+        }
+
+    }
+
+    if (any((x) <= 0)) {
+
+        return(NA)
+
+    }
+
+    x_mean <- mean2(x, na.rm = na.rm)
+
+    if (!is.null(weighting)) {
+
+        w_share <- weighting/sum(weighting)
+
+        ln_mean <- w_share * log(x_mean/x)
+
+    }
+
+    else {
+      
+        ln_mean <- log(x_mean/x)
+        
+    }
+  
+    TE <- mean2(ln_mean, na.rm = na.rm)
+    return(TE)
+
+  }
+```
+
+```{r theil-practice}
 
 theil_2019 <- landings %>%
   filter(sp_name == "COD, ATLANTIC", year == 2019) 
 
-total_2019 = sum(theil_2019$value)
+#theil_2019 <- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
 
-theil_2019 <- theil_2019 %>%
-  group_by(port_state) %>%
-  mutate(perc_landings = value / total_2019)
-
-theil(theil_2019$value, weighting = theil_2019$perc_landings)
-
+#abs 
+theil(1/theil_2019$value)
+#relative
+theil(1/theil_2019$value, weighting = theil_2019$value)
 ```
+```{r }
+
+theil_2004 <- landings %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2004) 
+
+#theil_2019 <- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
+
+#abs 
+theil(1 / theil_2004$value)
+#relative
+theil(1/theil_2004$value, weighting = theil_2004$value)
+```
+
+
+
