@@ -1,0 +1,59 @@
+---
+title: "Theil"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+date: '2022-06-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r load-data}
+library(readxl)
+library(tidyverse)
+library(REAT)
+data <- read_csv("~/Desktop/theil.csv")
+```
+
+```{r dummy}
+dummy <- data.frame(
+  port = letters[1:6],
+  value = c(10, 10, 10, 20, 500, 7000))
+
+#REAT package
+dummy_reat <- theil(dummy$value)
+
+#using own equation
+dummy <- mutate(dummy, share = (value / sum(dummy$value)),
+                dummy, share_mean = share * n_distinct(port),
+                t_value = log(share_mean)*share)
+  
+dummy_new <- dummy %>%
+  summarise(sum(t_value))
+
+#very different values, both over 1?
+```
+
+
+```{r 2019}
+theil_2019 <- data %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2019) 
+
+#from REAT
+reat2019 = theil(theil_2019$value)
+
+
+theil_2019 <- mutate(theil_2019, 
+       #prop of total landings
+        share = value / sum(value),
+        #prop of mean landings
+        share_mean = share * n_distinct(port_state), 
+        t_value = log(share_mean)*share)
+  
+new2019 = summarise(theil_2019, sum(t_value))
+```

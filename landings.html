@@ -537,165 +537,68 @@ totals$conf_lbs &lt;- ifelse(is.na(totals$conf_lbs), 0, totals$conf_lbs)</code><
 ##     spec</code></pre>
 <pre class="r"><code>##NEED to better understand how this function works, the value should be between 0 and 1 and doesnt work on dummy it seems
 dummy &lt;- data.frame(
-  year = 2000:2004,
-  port = letters[1:5],
-  value = c(1000, 1000, 50000, 1000, 10000))
+  port = letters[1:6],
+  value = c(10, 10, 10, 20, 500, 7000))
   #share = c(0.01587, 0.01587, 0.7936, 0.01587, 0.1587))
 
 
 #dummy &lt;- mutate(dummy, share = 1 /(value / sum(dummy$value)))
 
 theil(dummy$value)</code></pre>
-<pre><code>## [1] 1.290775</code></pre>
+<pre><code>## [1] 2.975583</code></pre>
 <pre class="r"><code>#theil(1/dummy$value, weighting = dummy$value)</code></pre>
-<pre class="r"><code>##POTENTIALLY REMAKE THIS FUNCTION
-
-function (x, weighting = NULL, na.rm = TRUE) 
-  {
+<pre class="r"><code>dummy &lt;- mutate(dummy, share = (value / sum(dummy$value)),
+                dummy, share_mean = share * n_distinct(port),
+                t_value = log(share_mean)*share)
   
-    if (!is.null(weighting)) {
-      
-        if (length(x) != length(weighting)) {
-          
-            stop(&quot;Frequency and weighting differ in length&quot;, 
-                 
-                call. = FALSE)
-          
-        }
-    }
-  
-    if (na.rm == TRUE) {
-      
-        if (!is.null(weighting)) {
-
-            x_w &lt;- as.matrix(cbind(x, weighting))
-
-            x_w &lt;- x_w[complete.cases(x_w), ]
-
-            x &lt;- x_w[, 1]
-
-            weighting &lt;- x_w[, 2]
-
-        }
-
-        else {
-
-            x &lt;- x[!is.na(x)]
-
-        }
-
-    }
-
-    if (any((x) &lt;= 0)) {
-
-        return(NA)
-
-    }
-
-    x_mean &lt;- mean2(x, na.rm = na.rm)
-
-    if (!is.null(weighting)) {
-
-        w_share &lt;- weighting/sum(weighting)
-
-        ln_mean &lt;- w_share * log(x_mean/x)
-
-    }
-
-    else {
-      
-        ln_mean &lt;- log(x_mean/x)
-        
-    }
-  
-    TE &lt;- mean2(ln_mean, na.rm = na.rm)
-    return(TE)
-
-  }</code></pre>
-<pre><code>## function (x, weighting = NULL, na.rm = TRUE) 
-##   {
-##   
-##     if (!is.null(weighting)) {
-##       
-##         if (length(x) != length(weighting)) {
-##           
-##             stop(&quot;Frequency and weighting differ in length&quot;, 
-##                  
-##                 call. = FALSE)
-##           
-##         }
-##     }
-##   
-##     if (na.rm == TRUE) {
-##       
-##         if (!is.null(weighting)) {
-## 
-##             x_w &lt;- as.matrix(cbind(x, weighting))
-## 
-##             x_w &lt;- x_w[complete.cases(x_w), ]
-## 
-##             x &lt;- x_w[, 1]
-## 
-##             weighting &lt;- x_w[, 2]
-## 
-##         }
-## 
-##         else {
-## 
-##             x &lt;- x[!is.na(x)]
-## 
-##         }
-## 
-##     }
-## 
-##     if (any((x) &lt;= 0)) {
-## 
-##         return(NA)
-## 
-##     }
-## 
-##     x_mean &lt;- mean2(x, na.rm = na.rm)
-## 
-##     if (!is.null(weighting)) {
-## 
-##         w_share &lt;- weighting/sum(weighting)
-## 
-##         ln_mean &lt;- w_share * log(x_mean/x)
-## 
-##     }
-## 
-##     else {
-##       
-##         ln_mean &lt;- log(x_mean/x)
-##         
-##     }
-##   
-##     TE &lt;- mean2(ln_mean, na.rm = na.rm)
-##     return(TE)
-## 
-##   }</code></pre>
+dummy %&gt;%
+  summarise(sum(t_value))</code></pre>
+<pre><code>##   sum(t_value)
+## 1     1.499802</code></pre>
 <pre class="r"><code>theil_2019 &lt;- landings %&gt;%
   filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2019) 
 
-#theil_2019 &lt;- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
-
 #abs 
-theil(1/theil_2019$value)</code></pre>
-<pre><code>## [1] 4.250735</code></pre>
+theil(theil_2019$value)</code></pre>
+<pre><code>## [1] 1.489135</code></pre>
 <pre class="r"><code>#relative
-theil(1/theil_2019$value, weighting = theil_2019$value)</code></pre>
-<pre><code>## [1] 0.07467309</code></pre>
+theil(theil_2019$value, weighting = theil_2019$value)</code></pre>
+<pre><code>## [1] -0.01089676</code></pre>
+<pre class="r"><code>theil_2019 &lt;- mutate(theil_2019, 
+                     #prop of total landings
+                     share = value / sum(value),
+                     #prop of mean landings
+                     share_mean = share * n_distinct(port_state), 
+                     t_value = log(share_mean)*share)
+  
+theil_2019 %&gt;%
+  summarise(sum(t_value))</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   `sum(t_value)`
+##            &lt;dbl&gt;
+## 1         -0.384</code></pre>
 <pre class="r"><code>theil_2004 &lt;- landings %&gt;%
   filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2004) 
 
-#theil_2019 &lt;- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
-
-#abs 
+#abs from package
 theil(1 / theil_2004$value)</code></pre>
 <pre><code>## [1] 4.932301</code></pre>
-<pre class="r"><code>#relative
+<pre class="r"><code>#relative from package
 theil(1/theil_2004$value, weighting = theil_2004$value)</code></pre>
 <pre><code>## [1] 0.2282365</code></pre>
+<pre class="r"><code>theil_2004 &lt;- landings %&gt;%
+  filter(sp_name == &quot;COD, ATLANTIC&quot;, year == 2004)
+
+theil_2004 &lt;- mutate(theil_2004, share = (value / sum(theil_2004$value)),
+                     theil_2004, share_mean = share * n_distinct(port_state),
+                     t_value = log(share_mean)*share)
+  
+theil_2004 %&gt;%
+  summarise(sum(t_value))</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   `sum(t_value)`
+##            &lt;dbl&gt;
+## 1           1.77</code></pre>
 </div>
 
 

@@ -190,9 +190,8 @@ landings %>%
 library(REAT)
 ##NEED to better understand how this function works, the value should be between 0 and 1 and doesnt work on dummy it seems
 dummy <- data.frame(
-  year = 2000:2004,
-  port = letters[1:5],
-  value = c(1000, 1000, 50000, 1000, 10000))
+  port = letters[1:6],
+  value = c(10, 10, 10, 20, 500, 7000))
   #share = c(0.01587, 0.01587, 0.7936, 0.01587, 0.1587))
 
 
@@ -202,97 +201,65 @@ theil(dummy$value)
 #theil(1/dummy$value, weighting = dummy$value)
 ```
 
-```{r theil function}
-##POTENTIALLY REMAKE THIS FUNCTION
+```{r theil-code}
 
-function (x, weighting = NULL, na.rm = TRUE) 
-  {
+dummy <- mutate(dummy, share = (value / sum(dummy$value)),
+                dummy, share_mean = share * n_distinct(port),
+                t_value = log(share_mean)*share)
   
-    if (!is.null(weighting)) {
-      
-        if (length(x) != length(weighting)) {
-          
-            stop("Frequency and weighting differ in length", 
-                 
-                call. = FALSE)
-          
-        }
-    }
-  
-    if (na.rm == TRUE) {
-      
-        if (!is.null(weighting)) {
+dummy %>%
+  summarise(sum(t_value))
 
-            x_w <- as.matrix(cbind(x, weighting))
-
-            x_w <- x_w[complete.cases(x_w), ]
-
-            x <- x_w[, 1]
-
-            weighting <- x_w[, 2]
-
-        }
-
-        else {
-
-            x <- x[!is.na(x)]
-
-        }
-
-    }
-
-    if (any((x) <= 0)) {
-
-        return(NA)
-
-    }
-
-    x_mean <- mean2(x, na.rm = na.rm)
-
-    if (!is.null(weighting)) {
-
-        w_share <- weighting/sum(weighting)
-
-        ln_mean <- w_share * log(x_mean/x)
-
-    }
-
-    else {
-      
-        ln_mean <- log(x_mean/x)
-        
-    }
-  
-    TE <- mean2(ln_mean, na.rm = na.rm)
-    return(TE)
-
-  }
 ```
 
-```{r theil-practice}
+
+
+```{r from-package-2019}
 
 theil_2019 <- landings %>%
   filter(sp_name == "COD, ATLANTIC", year == 2019) 
 
-#theil_2019 <- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
-
 #abs 
-theil(1/theil_2019$value)
+theil(theil_2019$value)
 #relative
-theil(1/theil_2019$value, weighting = theil_2019$value)
+theil(theil_2019$value, weighting = theil_2019$value)
 ```
-```{r }
+```{r new-2019}
+theil_2019 <- mutate(theil_2019, 
+                     #prop of total landings
+                     share = value / sum(value),
+                     #prop of mean landings
+                     share_mean = share * n_distinct(port_state), 
+                     t_value = log(share_mean)*share)
+  
+theil_2019 %>%
+  summarise(sum(t_value))
+```
+
+
+```{r from-package-2004}
 
 theil_2004 <- landings %>%
   filter(sp_name == "COD, ATLANTIC", year == 2004) 
 
-#theil_2019 <- mutate(theil_2019, share = 1 /(value / sum(theil_2019$value)))
-
-#abs 
+#abs from package
 theil(1 / theil_2004$value)
-#relative
+#relative from package
 theil(1/theil_2004$value, weighting = theil_2004$value)
 ```
+
+```{r}
+theil_2004 <- landings %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2004)
+
+theil_2004 <- mutate(theil_2004, share = (value / sum(theil_2004$value)),
+                     theil_2004, share_mean = share * n_distinct(port_state),
+                     t_value = log(share_mean)*share)
+  
+theil_2004 %>%
+  summarise(sum(t_value))
+```
+
 
 
 
