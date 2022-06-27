@@ -1,3 +1,10 @@
+---
+title: "Viz"
+output: html_document
+date: '2022-06-27'
+---
+
+
 ```{r load-data}
 library(readxl)
 library(tidyverse)
@@ -92,12 +99,6 @@ include <- perc_yrs %>%
   filter(perc_above < 0.5, totalyrs > 6)
 ```
 
-```{r total-yrs-viz}
-include %>%
-  ggplot(aes(x = totalyrs)) +
-  geom_bar()
-```
-
 ```{r yrs-ports}
 tidied <- landings %>%
   filter(port_state %in% include$port_state)
@@ -106,4 +107,89 @@ landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + s
 
 ```
 
+______________________________________________________________
+LOBSTER VIZs DONT LOOK RIGHT--WHAT HAPPENED TO ME LANDINGS???? IS PROPORTION THAT SMALL OR HAS THIS HAPPENED BECAUSE OF FILTERED PORTS?
+```{r lobster-landings}
+###lobster ONLY landings by year and state --> for visualization
+lobster_landings <- landings %>%
+  filter(sp_name == "LOBSTER, AMERICAN") %>%
+  group_by(year, state) %>%
+  summarise(lobster_lbs = sum(landed_lbs))
+```
+
+
+```{r total-state-landings}
+###total landings by port and year
+total_landings <- landings %>%
+  filter(port != "CONFIDENTIAL") %>%
+  group_by(year, state) %>%
+  summarise(total_lbs = sum(landed_lbs)) 
+```
+
+```{r lobster-viz}
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "Millions of Pounds",
+    color = ""
+  ) #+
+  #scale_x_continuous(breaks = 1995:2021) +
+ # scale_y_continuous(labels = c(0, 25, 50, 75))
+```
+
+```{r lobster-viz-proportions}
+
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, fill = state)) +
+  geom_col(position="fill") +
+  labs(
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
+    x = "",
+    y="",
+    fill = ""
+  )
+```
+
+```{r lobster-viz-stacked}
+
+lobster_landings %>%
+  ggplot(aes(x = year, y = lobster_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "",
+    fill = ""
+  )
+```
+
+```{r lobster-viz-newengland}
+
+lobster_landings %>%
+  filter(state != "ME", state != "DE", state != "ME", state != "VA", state != "NC") %>%
+  ggplot(aes(x = year, y = lobster_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in New England + NH, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds",
+    color = "State"
+  )
+```
+
+```{r lobster-viz-maine}
+
+lobster_landings %>%
+  filter(state == "ME") %>%
+  ggplot(aes(x = year, y = lobster_lbs)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of American Lobster in Maine, 1995-2021",
+    x = "Year",
+    y = "Landed Pounds"
+  )
+```
 

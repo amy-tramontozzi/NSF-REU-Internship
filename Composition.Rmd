@@ -1,0 +1,249 @@
+---
+title: "Composition"
+output: html_document
+date: '2022-06-27'
+---
+
+```{r load-data}
+library(readxl)
+library(tidyverse)
+landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
+```
+
+```{r clean-df}
+landings <- landings %>%
+  rename(year = YEAR) %>%
+  rename(port = "PORT NAME") %>%
+  rename(state = STATE) %>%
+  rename(sp_name = SPPNAME) %>%
+  rename(landed_lbs = "LANDED LBS") %>%
+  rename(live_lbs = "LIVE LBS") %>%
+   rename(value = VALUE)
+```
+```{r filter-year}
+landings <- landings %>%
+  filter(year >= 1995)
+```
+
+```{r numeric-lbs}
+###convert the landings data to numeric values
+
+landings$landed_lbs <- gsub(",", "", landings$landed_lbs)
+landings$landed_lbs <- as.integer(landings$landed_lbs)
+
+landings$live_lbs <- gsub(",", "", landings$live_lbs)
+landings$live_lbs <- as.integer(landings$live_lbs)
+
+
+landings$value <- gsub(",", "", landings$value)
+landings$value <- as.integer(gsub("\\$", "", landings$value))
+
+landings$year <- as.integer(landings$year)
+str(landings)
+```
+
+```{r port-state}
+landings$port_state <- paste(landings$port, landings$state, sep = " ")
+```  
+
+```{r conf-species}
+conf_landings <- landings %>%
+  filter(sp_name == "CONFIDENTIAL") %>%
+  group_by(year, port_state) %>%
+  summarise(conf_lbs = sum(landed_lbs)) 
+```  
+
+```{r total-port-landings}
+###total landings by port and year
+total_port_landings <- landings %>%
+  group_by(year, port_state) %>%
+  summarise(total_lbs = sum(landed_lbs))
+```
+
+```{r join-dfs}
+totals <- left_join(total_port_landings, conf_landings, by=c("year", "port_state")) 
+totals$conf_lbs <- ifelse(is.na(totals$conf_lbs), 0, totals$conf_lbs)
+```
+
+```{r perc-annual-conf}
+totals <- totals %>%
+  mutate(perc_annual_conf = round(conf_lbs / total_lbs, 2))
+```
+
+```{r annual-above-50}
+totals <- totals %>%
+  mutate(yrs = 1,
+         above50 = ifelse(perc_annual_conf >= 0.5, 1, 0)) 
+```
+
+```{r conf-yrs}
+confyrs <- totals %>%
+  group_by(port_state) %>%
+  summarise(totalyrs = sum(yrs),
+            yrsabove50 = sum(above50))
+```
+
+```{r perc-above}
+perc_yrs <- confyrs %>%
+  mutate(perc_above = round(yrsabove50 / totalyrs, 2))
+```
+
+```{r exclude-ports}
+exclude <- perc_yrs %>%
+  filter(perc_above >= 0.5)
+```
+
+```{r include-ports}
+include <- perc_yrs %>%
+  filter(perc_above < 0.5, totalyrs > 6)
+```
+
+```{r yrs-ports}
+tidied <- landings %>%
+  filter(port_state %in% include$port_state)
+
+landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + sp_name +state + port, data = tidied, FUN = sum)
+
+```
+
+
+
+-------------------------------------------------------------------------
+
+
+SIMPSON
+
+
+```{r simp-2019}
+#INCLUDING CONF IN TOTAL
+library(abdiv)
+
+simpson_2019 <- filter(landings, year == 2019) 
+
+simpson_2019 <- aggregate(cbind(value, landed_lbs, live_lbs) ~ sp_name, data = simpson_2019, FUN = sum) 
+
+simpson(simpson_2019$value)
+```
+
+```{r simpson-func}
+#INCLUDING CONF IN TOTAL, INPUT yr as string
+library(abdiv)
+
+simp <- function(yr) {
+  x <- filter(landings, year == yr)
+  
+  x <- aggregate(cbind(value, landed_lbs, live_lbs) ~ sp_name, data = x, FUN = sum) 
+  
+  value <- simpson(x$value)
+  print(value)
+}
+
+simp_results = data.frame()
+
+for (i in 1995:2021) {
+  output = c(i, simp(i))
+  year = i
+  simp_results = rbind(simp_results, output)
+}
+
+colnames(simp_results)<-c("year", "index")
+
+simp_results %>%
+  ggplot(aes(year, index)) +
+  geom_line() +
+  labs(x = "",
+       y = "Simpson Index")
+```
+
+
+```{r simpson-noconf-func}
+#EXCLUDING CONF IN TOTAL, INPUT yr as string
+library(abdiv)
+
+simp_noconf <- function(yr) {
+  x <- filter(landings, year == yr, sp_name != "CONFIDENTIAL")
+  
+  x <- aggregate(cbind(value, landed_lbs, live_lbs) ~ sp_name, data = x, FUN = sum) 
+  
+  value <- simpson(x$value)
+  print(value)
+}
+
+simp_noconf_results = data.frame()
+
+for (i in 1995:2021) {
+  output = c(i, simp_noconf(i))
+  year = i
+  simp_noconf_results = rbind(simp_noconf_results, output)
+}
+
+colnames(simp_noconf_results)<-c("year", "index")
+
+simp_noconf_results %>%
+  ggplot(aes(year, index)) +
+  geom_line() +
+  labs(x = "",
+       y = "Simpson Index")
+```
+
+SHANNON INDEX
+
+```{r shannon-conf}
+#INCLUDING CONF
+library(abdiv)
+
+shan <- function(yr) {
+  x <- filter(landings, year == yr)
+  
+  x <- aggregate(cbind(value, landed_lbs, live_lbs) ~ sp_name, data = x, FUN = sum) 
+  
+  value <- shannon(x$value)
+  print(value)
+}
+
+shan_conf = data.frame()
+
+for (i in 1995:2021) {
+  output = c(i, shan(i))
+  year = i
+  shan_conf = rbind(shan_conf, output)
+}
+
+colnames(shan_conf)<-c("year", "index")
+
+shan_conf %>%
+  ggplot(aes(year, index)) +
+  geom_line() +
+  labs(x = "",
+       y = "Shannon Index")
+```
+
+```{r shan-noconf-func}
+#EXCLUDING CONF IN TOTAL
+library(abdiv)
+
+shan_noconf <- function(yr) {
+  x <- filter(landings, year == yr, sp_name != "CONFIDENTIAL")
+  
+  x <- aggregate(cbind(value, landed_lbs, live_lbs) ~ sp_name, data = x, FUN = sum) 
+  
+  value <- shannon(x$value)
+  print(value)
+}
+
+shan_noconf_results = data.frame()
+
+for (i in 1995:2021) {
+  output = c(i, shan_noconf(i))
+  year = i
+  shan_noconf_results = rbind(shan_noconf_results, output)
+}
+
+colnames(shan_noconf_results)<-c("year", "index")
+
+shan_noconf_results %>%
+  ggplot(aes(year, index)) +
+  geom_line() +
+  labs(x = "",
+       y = "Simpson Index")
+```

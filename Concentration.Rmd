@@ -1,3 +1,9 @@
+---
+title: "Composition"
+output: html_document
+date: '2022-06-27'
+---
+
 ```{r load-data}
 library(readxl)
 library(tidyverse)
@@ -92,12 +98,6 @@ include <- perc_yrs %>%
   filter(perc_above < 0.5, totalyrs > 6)
 ```
 
-```{r total-yrs-viz}
-include %>%
-  ggplot(aes(x = totalyrs)) +
-  geom_bar()
-```
-
 ```{r yrs-ports}
 tidied <- landings %>%
   filter(port_state %in% include$port_state)
@@ -107,3 +107,52 @@ landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + s
 ```
 
 
+
+-------------------------------------------------------------------------
+THEIL
+
+```{r dummy-package}
+library(REAT)
+library(dineq)
+
+dummy <- data.frame(
+  port = letters[1:6],
+  value = c(10, 10, 10, 20, 500, 7000))
+
+#differences in weighting? think bottom may be right, don't understand why the top still isnt working
+theil(dummy$value)
+theil.wtd(dummy$value, weights = NULL) #working like own code
+theil.wtd(dummy$value, weights = dummy$value)
+```
+
+```{r theil-code}
+
+dummy <- mutate(dummy, share = (value / sum(dummy$value)),
+                share_mean = share * n_distinct(port), 
+                t_value = log(share_mean)*share)
+  
+dummy %>%
+  summarise(sum(t_value))
+
+```
+
+```{r from-package-2019}
+theil_2019 <- landings %>%
+  filter(sp_name == "COD, ATLANTIC", year == 2019) 
+
+#why negative? not sure
+theil(theil_2019$value) #abs
+theil(theil_2019$value, weighting = theil_2019$value)
+theil.wtd(theil_2019$value, weights = NULL)
+theil.wtd(theil_2019$value, weights = theil_2019$value)
+```
+
+```{r theil-code}
+theil_2019 <- mutate(theil_2019, share = (value / sum(theil_2019$value)),
+                share_mean = share * n_distinct(port_state), 
+                contribution = log(share_mean)*share)
+  
+theil_2019 %>%
+  summarise(sum(contribution))
+
+```
