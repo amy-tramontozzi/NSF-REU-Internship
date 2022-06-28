@@ -1,13 +1,12 @@
 ---
-title: "Composition"
+title: "Concentration"
 output: html_document
 date: '2022-06-27'
 ---
 
 ```{r load-data}
-library(readxl)
 library(tidyverse)
-landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
+landings <- read_csv("~/Downloads/good_landings.csv")
 ```
 
 ```{r clean-df}
@@ -20,6 +19,7 @@ landings <- landings %>%
   rename(live_lbs = "LIVE LBS") %>%
    rename(value = VALUE)
 ```
+
 ```{r filter-year}
 landings <- landings %>%
   filter(year >= 1995)
@@ -39,6 +39,9 @@ landings$value <- gsub(",", "", landings$value)
 landings$value <- as.integer(gsub("\\$", "", landings$value))
 
 landings$year <- as.integer(landings$year)
+
+landings <- landings %>%
+  select(year, port, state, sp_name, landed_lbs, live_lbs, value)
 str(landings)
 ```
 
@@ -99,10 +102,8 @@ include <- perc_yrs %>%
 ```
 
 ```{r yrs-ports}
-tidied <- landings %>%
+landings <- landings %>%
   filter(port_state %in% include$port_state)
-
-landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + sp_name +state + port, data = tidied, FUN = sum)
 
 ```
 
@@ -143,14 +144,14 @@ theil_2019 <- landings %>%
 #why negative? not sure
 theil(theil_2019$value) #abs
 theil(theil_2019$value, weighting = theil_2019$value)
-theil.wtd(theil_2019$value, weights = NULL)
+theil.wtd(theil_2019$value, weights = NULL) #THIS MATCHES WHAT I GET...STILL CANNOT BE CORRECT
 theil.wtd(theil_2019$value, weights = theil_2019$value)
 ```
 
-```{r theil-code}
+```{r theil-2019-code}
 theil_2019 <- mutate(theil_2019, share = (value / sum(theil_2019$value)),
-                share_mean = share * n_distinct(port_state), 
-                contribution = log(share_mean)*share)
+                     share_mean = share *n_distinct(port_state),
+                     contribution = log(share_mean)*share)
   
 theil_2019 %>%
   summarise(sum(contribution))

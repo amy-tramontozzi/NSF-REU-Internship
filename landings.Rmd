@@ -1,9 +1,9 @@
-```{r load-data}
-library(readxl)
-library(tidyverse)
-landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
-```
 
+
+```{r load-data}
+library(tidyverse)
+landings <- read_csv("~/Downloads/good_landings.csv")
+```
 ```{r clean-df}
 landings <- landings %>%
   rename(year = YEAR) %>%
@@ -14,6 +14,7 @@ landings <- landings %>%
   rename(live_lbs = "LIVE LBS") %>%
    rename(value = VALUE)
 ```
+
 ```{r filter-year}
 landings <- landings %>%
   filter(year >= 1995)
@@ -33,6 +34,9 @@ landings$value <- gsub(",", "", landings$value)
 landings$value <- as.integer(gsub("\\$", "", landings$value))
 
 landings$year <- as.integer(landings$year)
+
+landings <- landings %>%
+  select(year, port, state, sp_name, landed_lbs, live_lbs, value)
 str(landings)
 ```
 
@@ -99,11 +103,18 @@ include %>%
 ```
 
 ```{r yrs-ports}
-tidied <- landings %>%
+landings <- landings %>%
   filter(port_state %in% include$port_state)
-
-landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + sp_name +state + port, data = tidied, FUN = sum)
-
 ```
+
+```{r}
+landings %>%
+  filter(sp_name == "LOBSTER, AMERICAN", year == 2019) %>%
+  summarise(sum(landed_lbs))
+```
+
+
+
+
 
 

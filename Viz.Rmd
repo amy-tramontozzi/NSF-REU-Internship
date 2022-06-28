@@ -6,9 +6,8 @@ date: '2022-06-27'
 
 
 ```{r load-data}
-library(readxl)
 library(tidyverse)
-landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
+landings <- read_csv("~/Downloads/good_landings.csv")
 ```
 
 ```{r clean-df}
@@ -21,10 +20,12 @@ landings <- landings %>%
   rename(live_lbs = "LIVE LBS") %>%
    rename(value = VALUE)
 ```
+
 ```{r filter-year}
 landings <- landings %>%
   filter(year >= 1995)
 ```
+
 
 ```{r numeric-lbs}
 ###convert the landings data to numeric values
@@ -40,6 +41,9 @@ landings$value <- gsub(",", "", landings$value)
 landings$value <- as.integer(gsub("\\$", "", landings$value))
 
 landings$year <- as.integer(landings$year)
+
+landings <- landings %>%
+  select(year, port, state, sp_name, landed_lbs, live_lbs, value)
 str(landings)
 ```
 
@@ -100,49 +104,44 @@ include <- perc_yrs %>%
 ```
 
 ```{r yrs-ports}
-tidied <- landings %>%
+landings <- landings %>%
   filter(port_state %in% include$port_state)
-
-landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + sp_name +state + port, data = tidied, FUN = sum)
-
-```
-
-______________________________________________________________
-LOBSTER VIZs DONT LOOK RIGHT--WHAT HAPPENED TO ME LANDINGS???? IS PROPORTION THAT SMALL OR HAS THIS HAPPENED BECAUSE OF FILTERED PORTS?
-```{r lobster-landings}
-###lobster ONLY landings by year and state --> for visualization
-lobster_landings <- landings %>%
-  filter(sp_name == "LOBSTER, AMERICAN") %>%
-  group_by(year, state) %>%
-  summarise(lobster_lbs = sum(landed_lbs))
 ```
 
 
 ```{r total-state-landings}
 ###total landings by port and year
 total_landings <- landings %>%
-  filter(port != "CONFIDENTIAL") %>%
+  filter(port_state != "CONFIDENTIAL") %>%
   group_by(year, state) %>%
   summarise(total_lbs = sum(landed_lbs)) 
 ```
 
-```{r lobster-viz}
+```{r lobster-viz-proportions}
+lobster_landings <- landings %>%
+  filter(sp_name == "LOBSTER, AMERICAN") %>%
+  group_by(year, state) %>%
+  summarise(lobster_lbs = sum(landed_lbs))
+```
+
+```{r}
 lobster_landings %>%
   ggplot(aes(x = year, y = lobster_lbs, color = state)) +
   geom_line() +
   labs(
     title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
     x = "",
-    y = "Millions of Pounds",
+    y="Millions of Pounds",
     color = ""
-  ) #+
-  #scale_x_continuous(breaks = 1995:2021) +
- # scale_y_continuous(labels = c(0, 25, 50, 75))
+  ) +
+  scale_y_continuous(breaks = c(0, 50000000, 100000000, 150000000), labels = c(0, 50, 100, 150)) +
+  theme_minimal()
+  
 ```
 
-```{r lobster-viz-proportions}
 
-lobster_landings %>%
+```{r}
+ lobster_landings %>%
   ggplot(aes(x = year, y = lobster_lbs, fill = state)) +
   geom_col(position="fill") +
   labs(
@@ -153,6 +152,8 @@ lobster_landings %>%
   )
 ```
 
+
+
 ```{r lobster-viz-stacked}
 
 lobster_landings %>%
@@ -161,9 +162,11 @@ lobster_landings %>%
   labs(
     title = "Landed Pounds of American Lobster in Northeastern U.S., 1995-2021",
     x = "",
-    y = "",
+    y = "Millions of Pounds",
     fill = ""
-  )
+  ) +
+  scale_y_continuous(breaks = c(0, 50000000, 100000000, 150000000), labels = c(0, 50, 100, 150)) +
+  theme_minimal()
 ```
 
 ```{r lobster-viz-newengland}
@@ -191,5 +194,143 @@ lobster_landings %>%
     x = "Year",
     y = "Landed Pounds"
   )
+```
+```{r cod}
+cod_landings <- landings %>%
+  filter(sp_name == "COD, ATLANTIC") %>%
+  group_by(year, state) %>%
+  summarise(cod_lbs = sum(landed_lbs))
+  
+cod_landings %>%
+  ggplot(aes(x = year, y = cod_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of Atlantic Cod in Northeastern U.S., 1995-2021",
+    x = "",
+    y="Millions of Pounds",
+    color = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 5000000, 10000000, 15000000, 20000000), labels = c(0, 5, 10, 15, 20)) +
+  theme_minimal()
+  
+```
+
+```{r cod-viz-stacked}
+
+cod_landings %>%
+  ggplot(aes(x = year, y = cod_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of Atlantic Cod in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "Millions of Pounds",
+    fill = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 5000000, 10000000, 15000000, 20000000, 25000000), labels = c(0, 5, 10, 15, 20, 25)) +
+  theme_minimal()
+```
+
+```{r haddock}
+haddock_landings <- landings %>%
+  filter(sp_name == "HADDOCK") %>%
+  group_by(year, state) %>%
+  summarise(haddock_lbs = sum(landed_lbs))
+  
+haddock_landings %>%
+  ggplot(aes(x = year, y = haddock_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of Haddock in Northeastern U.S., 1995-2021",
+    x = "",
+    y="Millions of Pounds",
+    color = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 5000000, 10000000, 15000000, 20000000), labels = c(0, 5, 10, 15, 20)) +
+  theme_minimal()
+  
+```
+
+```{r haddock-viz-stacked}
+
+haddock_landings %>%
+  ggplot(aes(x = year, y = haddock_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of Haddock in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "Millions of Pounds",
+    fill = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 5000000, 10000000, 15000000, 20000000), labels = c(0, 5, 10, 15, 20)) +
+  theme_minimal()
+```
+
+```{r flounder}
+flounder_landings <- landings %>%
+  filter(sp_name == "FLOUNDER, SUMMER") %>%
+  group_by(year, state) %>%
+  summarise(flounder_lbs = sum(landed_lbs))
+  
+flounder_landings %>%
+  ggplot(aes(x = year, y = flounder_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of Summer Flounder in Northeastern U.S., 1995-2021",
+    x = "",
+    y="Millions of Pounds",
+    color = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 2000000, 4000000), labels = c(0, 2, 4)) +
+  theme_minimal()
+  
+```
+
+```{r flounder-viz-stacked}
+
+flounder_landings %>%
+  ggplot(aes(x = year, y = flounder_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of Summer Flounder in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "Millions of Pounds",
+    fill = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 5000000, 10000000, 15000000), labels = c(0, 5, 10, 15)) +
+  theme_minimal()
+```
+
+```{r bass}
+bass_landings <- landings %>%
+  filter(sp_name == "SEA BASS, BLACK") %>%
+  group_by(year, state) %>%
+  summarise(bass_lbs = sum(landed_lbs))
+  
+bass_landings %>%
+  ggplot(aes(x = year, y = bass_lbs, color = state)) +
+  geom_line() +
+  labs(
+    title = "Landed Pounds of Black Sea Bass in Northeastern U.S., 1995-2021",
+    x = "",
+    y="Millions of Pounds",
+    color = ""
+  ) +
+  theme_minimal()
+  
+```
+
+```{r bass-viz-stacked}
+
+bass_landings %>%
+  ggplot(aes(x = year, y = bass_lbs, fill = state)) +
+  geom_bar(position="stack", stat="identity") +
+  labs(
+    title = "Landed Pounds of Black Sea Bass in Northeastern U.S., 1995-2021",
+    x = "",
+    y = "Millions of Pounds",
+    fill = ""
+  ) +
+  scale_y_continuous(breaks = c(0, 1000000, 2000000, 3000000, 4000000), labels = c(0, 1, 2, 3, 4)) +
+  theme_minimal()
 ```
 

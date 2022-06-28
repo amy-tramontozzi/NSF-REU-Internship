@@ -5,9 +5,8 @@ date: '2022-06-27'
 ---
 
 ```{r load-data}
-library(readxl)
 library(tidyverse)
-landings <- read_excel("~/Desktop/GMRI/landings_excel.xlsx")
+landings <- read_csv("~/Downloads/good_landings.csv")
 ```
 
 ```{r clean-df}
@@ -20,6 +19,7 @@ landings <- landings %>%
   rename(live_lbs = "LIVE LBS") %>%
    rename(value = VALUE)
 ```
+
 ```{r filter-year}
 landings <- landings %>%
   filter(year >= 1995)
@@ -39,6 +39,9 @@ landings$value <- gsub(",", "", landings$value)
 landings$value <- as.integer(gsub("\\$", "", landings$value))
 
 landings$year <- as.integer(landings$year)
+
+landings <- landings %>%
+  select(year, port, state, sp_name, landed_lbs, live_lbs, value)
 str(landings)
 ```
 
@@ -99,10 +102,8 @@ include <- perc_yrs %>%
 ```
 
 ```{r yrs-ports}
-tidied <- landings %>%
+landings <- landings %>%
   filter(port_state %in% include$port_state)
-
-landings <- aggregate(cbind(value, landed_lbs, live_lbs) ~ year + port_state + sp_name +state + port, data = tidied, FUN = sum)
 
 ```
 
@@ -245,5 +246,24 @@ shan_noconf_results %>%
   ggplot(aes(year, index)) +
   geom_line() +
   labs(x = "",
-       y = "Simpson Index")
+       y = "Shannon Index")
 ```
+
+```{r}
+ggplot() +
+  geom_line(data = simp_results, aes(year, index), colour = "red") +
+  geom_line(data = simp_noconf_results, aes(year, index), colour = "blue") +
+  labs(x = "",
+       y = "Simpson Index") +
+  theme_light()  
+```
+
+```{r}
+ggplot() +
+  geom_line(data = shan_conf, aes(year, index), colour = "red") +
+  geom_line(data = shan_noconf_results, aes(year, index), colour = "blue") +
+  labs(x = "",
+       y = "Shannon Index") +
+  theme_light()  
+```
+
