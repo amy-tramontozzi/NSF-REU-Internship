@@ -157,3 +157,49 @@ theil_2019 %>%
   summarise(sum(contribution))
 
 ```
+
+```{r theil-func}
+library(dineq)
+
+theil_func <- function(yr, name) {
+  x <- filter(landings, year == yr, sp_name == name)
+  
+  x <- aggregate(cbind(value) ~ port_state, data = x, FUN = sum)
+  
+  value <- theil.wtd(x$value, weights = NULL)
+  value <- as.double(value)
+  print(value)
+}
+
+theil_results = data.frame()
+
+years_list = 1995:2021
+species_list <- c("COD, ATLANTIC", "LOBSTER, AMERICAN", "HADDOCK", "FLOUNDER, SUMMER", "SEA BASS, BLACK")
+
+for(i in years_list) {
+    for(j in species_list) {
+  output = c(i, j, theil_func(i, j))
+  theil_results = rbind(theil_results, output)
+    }
+
+}
+
+colnames(theil_results)<-c("year", "name", "index")
+theil_results$year <- as.integer(theil_results$year)
+theil_results$index <- as.double(theil_results$index)
+
+```
+
+```{r theil-viz-facet}
+colnames(theil_results)<-c("year", "name", "index")
+
+theil_results %>%
+  ggplot(aes(year, index)) +
+  geom_line() +
+  labs(x = "",
+       y = "Absolute Theil Index",
+       title = "") +
+  facet_wrap(~ name, ncol = 3) +
+  theme_minimal()
+```
+
