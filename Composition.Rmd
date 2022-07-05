@@ -254,7 +254,7 @@ ggplot() +
   geom_line(data = simp_results, aes(year, index), colour = "red") +
   geom_line(data = simp_noconf_results, aes(year, index), colour = "blue") +
   geom_smooth(data = simp_results, aes(year, index), colour = "black", method = "lm", se = FALSE) +
-  geom_smooth(data = simp_noconf_results, aes(year, index), colour = "yellow", method = "lm", se = FALSE) +
+  geom_smooth(data = simp_noconf_results, aes(year, index), colour = "black",linetype = "dashed", method = "lm", se = FALSE) +
   labs(x = "",
        y = "Simpson Index") +
   theme_light()  
@@ -264,6 +264,8 @@ ggplot() +
 ggplot() +
   geom_line(data = shan_conf, aes(year, index), colour = "red") +
   geom_line(data = shan_noconf_results, aes(year, index), colour = "blue") +
+  geom_smooth(data = shan_conf, aes(year, index), colour = "black", method = "lm", se = FALSE) +
+  geom_smooth(data = shan_noconf_results, aes(year, index), colour = "black", linetype = "dashed", method = "lm", se = FALSE) +
   labs(x = "",
        y = "Shannon Index") +
   theme_light()  

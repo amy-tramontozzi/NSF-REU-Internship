@@ -196,10 +196,32 @@ colnames(theil_results)<-c("year", "name", "index")
 theil_results %>%
   ggplot(aes(year, index)) +
   geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
   labs(x = "",
        y = "Absolute Theil Index",
        title = "") +
   facet_wrap(~ name, ncol = 3) +
   theme_minimal()
+```
+
+```{r}
+  
+theil_2019 %>%
+  group_by(port_state) %>%
+  ggplot(aes(share)) +
+  geom_density() 
+```
+
+```{r}
+share_func <- function(yr, name) {
+  x <- filter(landings, year == yr, sp_name == name)
+  x <- aggregate(cbind(value) ~ port_state, data = x, FUN = sum)
+  
+  share = value / sum(x$value)
+    
+  share <- as.double(share) 
+
+  print(share)
+}
 ```
 
