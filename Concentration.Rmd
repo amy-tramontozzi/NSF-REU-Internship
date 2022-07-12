@@ -191,8 +191,6 @@ theil_results$index <- as.double(theil_results$index)
 ```
 
 ```{r theil-viz-facet}
-colnames(theil_results)<-c("year", "name", "index")
-
 theil_results %>%
   ggplot(aes(year, index)) +
   geom_line() +
@@ -204,24 +202,54 @@ theil_results %>%
   theme_minimal()
 ```
 
-```{r}
-  
-theil_2019 %>%
-  group_by(port_state) %>%
-  ggplot(aes(share)) +
-  geom_density() 
-```
+```{r prop-func}
+prop_func <- function(yr, name) {
 
-```{r}
-share_func <- function(yr, name) {
-  x <- filter(landings, year == yr, sp_name == name)
-  x <- aggregate(cbind(value) ~ port_state, data = x, FUN = sum)
-  
-  share = value / sum(x$value)
-    
-  share <- as.double(share) 
 
-  print(share)
+  o <- filter(landings, year == yr, sp_name == name)
+  p <- filter(landings, year == yr)
+  
+  o <- aggregate(cbind(value) ~ year, data = o, FUN = sum)
+  p <- aggregate(cbind(value) ~ year, data = p, FUN = sum)
+  
+  species = as.numeric(sum(o$value))
+  total = as.numeric(sum(p$value))
+  
+  print(species / total)
+  #prop <- as.double(prop)
 }
+
+prop_results = data.frame()
+
+
+
+years_list = 1995:2021
+species_list <- c("COD, ATLANTIC", "LOBSTER, AMERICAN", "HADDOCK", "FLOUNDER, SUMMER", "SEA BASS, BLACK")
+
+#prop_func(2019, "COD, ATLANTIC")
+
+for(i in years_list) {
+    for(j in species_list) {
+  output = c(i, j, prop_func(i, j))
+  prop_results = rbind(prop_results, output)
+    }
+
+}
+
+colnames(prop_results)<-c("year", "name", "prop")
+prop_results$year <- as.integer(prop_results$year)
+prop_results$prop <- as.double(prop_results$prop)
 ```
 
+```{r prop-viz-facet}
+prop_results %>%
+  filter(name == "LOBSTER, AMERICAN") %>%
+  ggplot(aes(year, prop)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "",
+       y = "Proportion of Total Value",
+       title = "") +
+  #facet_wrap(~ name, ncol = 3) +
+  theme_minimal()
+```
