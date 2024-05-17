@@ -1,5 +1,5 @@
 ---
-title: "Composition"
+title: "Species Composition"
 output: html_document
 date: '2022-06-27'
 ---
@@ -17,7 +17,7 @@ landings <- landings %>%
   rename(sp_name = SPPNAME) %>%
   rename(landed_lbs = "LANDED LBS") %>%
   rename(live_lbs = "LIVE LBS") %>%
-   rename(value = VALUE)
+  rename(value = VALUE)
 ```
 
 ```{r filter-year}
